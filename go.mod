@@ -1,4 +1,4 @@
-module github/golang-queue/nats
+module github.com/golang-queue/nats
 
 go 1.16
 
