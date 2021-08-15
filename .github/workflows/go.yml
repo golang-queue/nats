@@ -19,25 +19,10 @@ jobs:
 
     # Service containers to run with `container-job`
     services:
-      # Label used to access the service container
-      redis:
-        # Docker Hub image
-        image: redis
-        # Set health checks to wait until redis has started
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+      nats:
+        image: nats
         ports:
-          # Maps port 6379 on service container to the host
-          - 6379:6379
-
-      nsq:
-        image: nsqio/nsq
-        ports:
-          # Maps port 6379 on service container to the host
-          - 4150:4150
+          - 4222:4222
 
     env:
       GO111MODULE: on
@@ -58,3 +43,10 @@ jobs:
         uses: golangci/golangci-lint-action@v2
         with:
           version: v1.41.1
+
+      - name: Run Tests
+        run: |
+          go test -v -covermode=atomic -coverprofile=coverage.out .
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1
