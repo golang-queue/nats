@@ -5,8 +5,8 @@ jobs:
   test:
     strategy:
       matrix:
-        os: [ubuntu-latest]
-        go: [1.13, 1.14, 1.15, 1.16]
+        os: [ubuntu-latest, macos-latest]
+        go: [1.16, 1.17]
     name: ${{ matrix.os }} @ Go ${{ matrix.go }}
     runs-on: ${{ matrix.os }}
 
@@ -28,4 +28,4 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v2
         with:
-          version: v1.41.1
+          version: v1.42.0
