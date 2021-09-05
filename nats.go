@@ -19,15 +19,28 @@ type Option func(*Worker)
 
 // Worker for NSQ
 type Worker struct {
-	addr     string
-	subj     string
-	queue    string
-	client   *nats.Conn
-	stop     chan struct{}
-	stopOnce sync.Once
-	runFunc  func(context.Context, queue.QueuedMessage) error
-	logger   queue.Logger
-	stopFlag int32
+	addr        string
+	subj        string
+	queue       string
+	client      *nats.Conn
+	stop        chan struct{}
+	stopOnce    sync.Once
+	runFunc     func(context.Context, queue.QueuedMessage) error
+	logger      queue.Logger
+	stopFlag    int32
+	busyWorkers uint64
+}
+
+func (w *Worker) incBusyWorker() {
+	atomic.AddUint64(&w.busyWorkers, 1)
+}
+
+func (w *Worker) decBusyWorker() {
+	atomic.AddUint64(&w.busyWorkers, ^uint64(0))
+}
+
+func (w *Worker) BusyWorkers() uint64 {
+	return atomic.LoadUint64(&w.busyWorkers)
 }
 
 // WithAddr setup the addr of NATS
@@ -93,22 +106,26 @@ func NewWorker(opts ...Option) *Worker {
 }
 
 // BeforeRun run script before start worker
-func (s *Worker) BeforeRun() error {
+func (w *Worker) BeforeRun() error {
 	return nil
 }
 
 // AfterRun run script after start worker
-func (s *Worker) AfterRun() error {
+func (w *Worker) AfterRun() error {
 	return nil
 }
 
-func (s *Worker) handle(job queue.Job) error {
+func (w *Worker) handle(job queue.Job) error {
 	// create channel with buffer size 1 to avoid goroutine leak
 	done := make(chan error, 1)
 	panicChan := make(chan interface{}, 1)
 	startTime := time.Now()
 	ctx, cancel := context.WithTimeout(context.Background(), job.Timeout)
-	defer cancel()
+	w.incBusyWorker()
+	defer func() {
+		cancel()
+		w.decBusyWorker()
+	}()
 
 	// run the job
 	go func() {
@@ -120,7 +137,7 @@ func (s *Worker) handle(job queue.Job) error {
 		}()
 
 		// run custom process function
-		done <- s.runFunc(ctx, job)
+		done <- w.runFunc(ctx, job)
 	}()
 
 	select {
@@ -128,7 +145,7 @@ func (s *Worker) handle(job queue.Job) error {
 		panic(p)
 	case <-ctx.Done(): // timeout reached
 		return ctx.Err()
-	case <-s.stop: // shutdown service
+	case <-w.stop: // shutdown service
 		// cancel job
 		cancel()
 
@@ -148,10 +165,10 @@ func (s *Worker) handle(job queue.Job) error {
 }
 
 // Run start the worker
-func (s *Worker) Run() error {
+func (w *Worker) Run() error {
 	wg := &sync.WaitGroup{}
 	panicChan := make(chan interface{}, 1)
-	_, err := s.client.QueueSubscribe(s.subj, s.queue, func(m *nats.Msg) {
+	_, err := w.client.QueueSubscribe(w.subj, w.queue, func(m *nats.Msg) {
 		wg.Add(1)
 		defer func() {
 			wg.Done()
@@ -163,8 +180,8 @@ func (s *Worker) Run() error {
 		var data queue.Job
 		_ = json.Unmarshal(m.Data, &data)
 
-		if err := s.handle(data); err != nil {
-			s.logger.Error(err)
+		if err := w.handle(data); err != nil {
+			w.logger.Error(err)
 		}
 	})
 	if err != nil {
@@ -173,9 +190,9 @@ func (s *Worker) Run() error {
 
 	// wait close signal
 	select {
-	case <-s.stop:
+	case <-w.stop:
 	case err := <-panicChan:
-		s.logger.Error(err)
+		w.logger.Error(err)
 	}
 
 	// wait job completed
@@ -185,35 +202,35 @@ func (s *Worker) Run() error {
 }
 
 // Shutdown worker
-func (s *Worker) Shutdown() error {
-	if !atomic.CompareAndSwapInt32(&s.stopFlag, 0, 1) {
+func (w *Worker) Shutdown() error {
+	if !atomic.CompareAndSwapInt32(&w.stopFlag, 0, 1) {
 		return queue.ErrQueueShutdown
 	}
 
-	s.stopOnce.Do(func() {
-		s.client.Close()
-		close(s.stop)
+	w.stopOnce.Do(func() {
+		w.client.Close()
+		close(w.stop)
 	})
 	return nil
 }
 
 // Capacity for channel
-func (s *Worker) Capacity() int {
+func (w *Worker) Capacity() int {
 	return 0
 }
 
 // Usage for count of channel usage
-func (s *Worker) Usage() int {
+func (w *Worker) Usage() int {
 	return 0
 }
 
 // Queue send notification to queue
-func (s *Worker) Queue(job queue.QueuedMessage) error {
-	if atomic.LoadInt32(&s.stopFlag) == 1 {
+func (w *Worker) Queue(job queue.QueuedMessage) error {
+	if atomic.LoadInt32(&w.stopFlag) == 1 {
 		return queue.ErrQueueShutdown
 	}
 
-	err := s.client.Publish(s.subj, job.Bytes())
+	err := w.client.Publish(w.subj, job.Bytes())
 	if err != nil {
 		return err
 	}

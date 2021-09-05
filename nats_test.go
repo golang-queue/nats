@@ -371,3 +371,32 @@ func TestJobComplete(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, errors.New("job completed"), err)
 }
+
+func TestBusyWorkerCount(t *testing.T) {
+	job := queue.Job{
+		Timeout: 500 * time.Millisecond,
+		Body:    []byte("foo"),
+	}
+
+	w := NewWorker(
+		WithRunFunc(func(ctx context.Context, m queue.QueuedMessage) error {
+			time.Sleep(200 * time.Millisecond)
+			return nil
+		}),
+	)
+
+	assert.Equal(t, uint64(0), w.BusyWorkers())
+	go func() {
+		assert.NoError(t, w.handle(job))
+	}()
+	go func() {
+		assert.NoError(t, w.handle(job))
+	}()
+
+	time.Sleep(50 * time.Millisecond)
+	assert.Equal(t, uint64(2), w.BusyWorkers())
+	time.Sleep(200 * time.Millisecond)
+	assert.Equal(t, uint64(0), w.BusyWorkers())
+
+	assert.NoError(t, w.Shutdown())
+}
