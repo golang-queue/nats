@@ -33,13 +33,10 @@ func main() {
 		nats.WithSubj("example"),
 		nats.WithQueue("foobar"),
 		nats.WithRunFunc(func(ctx context.Context, m queue.QueuedMessage) error {
-			v, ok := m.(*job)
-			if !ok {
-				if err := json.Unmarshal(m.Bytes(), &v); err != nil {
-					return err
-				}
+			var v *job
+			if err := json.Unmarshal(m.Bytes(), &v); err != nil {
+				return err
 			}
-
 			rets <- v.Message
 			return nil
 		}),
@@ -60,9 +57,11 @@ func main() {
 	// assign tasks in queue
 	for i := 0; i < taskN; i++ {
 		go func(i int) {
-			q.Queue(&job{
+			if err := q.Queue(&job{
 				Message: fmt.Sprintf("handle the job: %d", i+1),
-			})
+			}); err != nil {
+				log.Fatal(err)
+			}
 		}(i)
 	}
 
@@ -73,7 +72,5 @@ func main() {
 	}
 
 	// shutdown the service and notify all the worker
-	q.Shutdown()
-	// wait all jobs are complete.
-	q.Wait()
+	q.Release()
 }
