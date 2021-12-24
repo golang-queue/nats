@@ -19,28 +19,29 @@ type Option func(*Worker)
 
 // Worker for NSQ
 type Worker struct {
-	addr        string
-	subj        string
-	queue       string
-	client      *nats.Conn
-	stop        chan struct{}
-	stopOnce    sync.Once
-	runFunc     func(context.Context, queue.QueuedMessage) error
-	logger      queue.Logger
-	stopFlag    int32
-	busyWorkers uint64
+	addr     string
+	subj     string
+	queue    string
+	client   *nats.Conn
+	stop     chan struct{}
+	stopOnce sync.Once
+	runFunc  func(context.Context, queue.QueuedMessage) error
+	logger   queue.Logger
+	stopFlag int32
+	metric   queue.Metric
 }
 
 func (w *Worker) incBusyWorker() {
-	atomic.AddUint64(&w.busyWorkers, 1)
+	w.metric.IncBusyWorker()
 }
 
 func (w *Worker) decBusyWorker() {
-	atomic.AddUint64(&w.busyWorkers, ^uint64(0))
+	w.metric.DecBusyWorker()
 }
 
+// BusyWorkers return count of busy workers currently.
 func (w *Worker) BusyWorkers() uint64 {
-	return atomic.LoadUint64(&w.busyWorkers)
+	return w.metric.BusyWorkers()
 }
 
 // WithAddr setup the addr of NATS
