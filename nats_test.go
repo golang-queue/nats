@@ -12,9 +12,14 @@ import (
 	"github.com/golang-queue/queue"
 
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/goleak"
 )
 
 var host = "127.0.0.1"
+
+func TestMain(m *testing.M) {
+	goleak.VerifyTestMain(m)
+}
 
 type mockMessage struct {
 	Message string
@@ -305,6 +310,7 @@ func TestHandleTimeout(t *testing.T) {
 	err := w.handle(job)
 	assert.Error(t, err)
 	assert.Equal(t, context.DeadlineExceeded, err)
+	assert.NoError(t, w.Shutdown())
 
 	job = queue.Job{
 		Timeout: 150 * time.Millisecond,
@@ -346,6 +352,7 @@ func TestJobComplete(t *testing.T) {
 	err := w.handle(job)
 	assert.Error(t, err)
 	assert.Equal(t, errors.New("job completed"), err)
+	assert.NoError(t, w.Shutdown())
 
 	job = queue.Job{
 		Timeout: 250 * time.Millisecond,
