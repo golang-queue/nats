@@ -14,99 +14,37 @@ import (
 
 var _ queue.Worker = (*Worker)(nil)
 
-// Option for queue system
-type Option func(*Worker)
-
 // Worker for NSQ
 type Worker struct {
-	addr     string
-	subj     string
-	queue    string
 	client   *nats.Conn
 	stop     chan struct{}
-	stopOnce sync.Once
-	runFunc  func(context.Context, queue.QueuedMessage) error
-	logger   queue.Logger
 	stopFlag int32
-	metric   queue.Metric
+	stopOnce sync.Once
+	opts     options
 }
 
 func (w *Worker) incBusyWorker() {
-	w.metric.IncBusyWorker()
+	w.opts.metric.IncBusyWorker()
 }
 
 func (w *Worker) decBusyWorker() {
-	w.metric.DecBusyWorker()
+	w.opts.metric.DecBusyWorker()
 }
 
 // BusyWorkers return count of busy workers currently.
 func (w *Worker) BusyWorkers() uint64 {
-	return w.metric.BusyWorkers()
-}
-
-// WithAddr setup the addr of NATS
-func WithAddr(addr string) Option {
-	return func(w *Worker) {
-		w.addr = "nats://" + addr
-	}
-}
-
-// WithSubj setup the subject of NATS
-func WithSubj(subj string) Option {
-	return func(w *Worker) {
-		w.subj = subj
-	}
-}
-
-// WithQueue setup the queue of NATS
-func WithQueue(queue string) Option {
-	return func(w *Worker) {
-		w.queue = queue
-	}
-}
-
-// WithRunFunc setup the run func of queue
-func WithRunFunc(fn func(context.Context, queue.QueuedMessage) error) Option {
-	return func(w *Worker) {
-		w.runFunc = fn
-	}
-}
-
-// WithLogger set custom logger
-func WithLogger(l queue.Logger) Option {
-	return func(w *Worker) {
-		w.logger = l
-	}
-}
-
-// WithMetric set custom Metric
-func WithMetric(m queue.Metric) Option {
-	return func(w *Worker) {
-		w.metric = m
-	}
+	return w.opts.metric.BusyWorkers()
 }
 
 // NewWorker for struc
 func NewWorker(opts ...Option) *Worker {
 	var err error
 	w := &Worker{
-		addr:  "127.0.0.1:4222",
-		subj:  "foobar",
-		queue: "foobar",
-		stop:  make(chan struct{}),
-		runFunc: func(context.Context, queue.QueuedMessage) error {
-			return nil
-		},
-		metric: queue.NewMetric(),
+		opts: newOptions(opts...),
+		stop: make(chan struct{}),
 	}
 
-	// Loop through each option
-	for _, opt := range opts {
-		// Call the option giving the instantiated
-		opt(w)
-	}
-
-	w.client, err = nats.Connect(w.addr)
+	w.client, err = nats.Connect(w.opts.addr)
 	if err != nil {
 		panic(err)
 	}
@@ -146,7 +84,7 @@ func (w *Worker) handle(job queue.Job) error {
 		}()
 
 		// run custom process function
-		done <- w.runFunc(ctx, job)
+		done <- w.opts.runFunc(ctx, job)
 	}()
 
 	select {
@@ -177,7 +115,7 @@ func (w *Worker) handle(job queue.Job) error {
 func (w *Worker) Run() error {
 	wg := &sync.WaitGroup{}
 	panicChan := make(chan interface{}, 1)
-	_, err := w.client.QueueSubscribe(w.subj, w.queue, func(m *nats.Msg) {
+	_, err := w.client.QueueSubscribe(w.opts.subj, w.opts.queue, func(m *nats.Msg) {
 		wg.Add(1)
 		defer func() {
 			wg.Done()
@@ -190,7 +128,7 @@ func (w *Worker) Run() error {
 		_ = json.Unmarshal(m.Data, &data)
 
 		if err := w.handle(data); err != nil {
-			w.logger.Error(err)
+			w.opts.logger.Error(err)
 		}
 	})
 	if err != nil {
@@ -201,7 +139,7 @@ func (w *Worker) Run() error {
 	select {
 	case <-w.stop:
 	case err := <-panicChan:
-		w.logger.Error(err)
+		w.opts.logger.Error(err)
 	}
 
 	// wait job completed
@@ -239,7 +177,7 @@ func (w *Worker) Queue(job queue.QueuedMessage) error {
 		return queue.ErrQueueShutdown
 	}
 
-	err := w.client.Publish(w.subj, job.Bytes())
+	err := w.client.Publish(w.opts.subj, job.Bytes())
 	if err != nil {
 		return err
 	}
