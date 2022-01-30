@@ -8,7 +8,7 @@ jobs:
       - name: Setup go
         uses: actions/setup-go@v2
         with:
-          go-version: '^1.16'
+          go-version: '^1'
       - name: Checkout repository
         uses: actions/checkout@v2
       - name: Setup golangci-lint
@@ -19,8 +19,18 @@ jobs:
 
   # Label of the container job
   test:
-    # You must use a Linux environment when using service containers or container jobs
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        go: [1.13, 1.14, 1.15, 1.16, 1.17]
+        include:
+          - os: ubuntu-latest
+            go-build: ~/.cache/go-build
+    name: ${{ matrix.os }} @ Go ${{ matrix.go }}
+    runs-on: ${{ matrix.os }}
+    env:
+      GO111MODULE: on
+      GOPROXY: https://proxy.golang.org
 
     # Service containers to run with `container-job`
     services:
@@ -29,21 +39,30 @@ jobs:
         ports:
           - 4222:4222
 
-    env:
-      GO111MODULE: on
-      GOPROXY: https://proxy.golang.org
     steps:
       - name: Set up Go ${{ matrix.go }}
         uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go }}
 
       - name: Checkout Code
         uses: actions/checkout@v2
         with:
           ref: ${{ github.ref }}
 
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ${{ matrix.go-build }}
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
       - name: Run Tests
         run: |
-          go test -v -covermode=atomic -coverprofile=coverage.out .
+          go test -v -covermode=atomic -coverprofile=coverage.out
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v2
+        with:
+          flags: ${{ matrix.os }},go-${{ matrix.go }}
