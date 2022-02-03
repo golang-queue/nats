@@ -1,7 +1,9 @@
 # nats
 
+[![CodeQL](https://github.com/golang-queue/nats/actions/workflows/codeql.yaml/badge.svg)](https://github.com/golang-queue/nats/actions/workflows/codeql.yaml)
 [![Run Testing](https://github.com/golang-queue/nats/actions/workflows/go.yml/badge.svg)](https://github.com/golang-queue/nats/actions/workflows/go.yml)
 [![codecov](https://codecov.io/gh/golang-queue/nats/branch/main/graph/badge.svg?token=FFZN8E2ZZB)](https://codecov.io/gh/golang-queue/nats)
+[![Go Report Card](https://goreportcard.com/badge/github.com/golang-queue/nats)](https://goreportcard.com/report/github.com/golang-queue/nats)
 
 NATS as backend with [Queue package](https://github.com/golang-queue/queue) (Connective Technology for Adaptive Edge & Distributed Systems)
 
