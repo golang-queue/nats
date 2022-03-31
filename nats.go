@@ -23,19 +23,6 @@ type Worker struct {
 	opts     options
 }
 
-func (w *Worker) incBusyWorker() {
-	w.opts.metric.IncBusyWorker()
-}
-
-func (w *Worker) decBusyWorker() {
-	w.opts.metric.DecBusyWorker()
-}
-
-// BusyWorkers return count of busy workers currently.
-func (w *Worker) BusyWorkers() uint64 {
-	return w.opts.metric.BusyWorkers()
-}
-
 // NewWorker for struc
 func NewWorker(opts ...Option) *Worker {
 	var err error
@@ -68,10 +55,8 @@ func (w *Worker) handle(job queue.Job) error {
 	panicChan := make(chan interface{}, 1)
 	startTime := time.Now()
 	ctx, cancel := context.WithTimeout(context.Background(), job.Timeout)
-	w.incBusyWorker()
 	defer func() {
 		cancel()
-		w.decBusyWorker()
 	}()
 
 	// run the job
@@ -112,7 +97,7 @@ func (w *Worker) handle(job queue.Job) error {
 }
 
 // Run start the worker
-func (w *Worker) Run() error {
+func (w *Worker) Run(task queue.QueuedMessage) error {
 	wg := &sync.WaitGroup{}
 	panicChan := make(chan interface{}, 1)
 	_, err := w.client.QueueSubscribe(w.opts.subj, w.opts.queue, func(m *nats.Msg) {
@@ -183,4 +168,9 @@ func (w *Worker) Queue(job queue.QueuedMessage) error {
 	}
 
 	return nil
+}
+
+// Request a new task
+func (w *Worker) Request() (queue.QueuedMessage, error) {
+	return nil, nil
 }

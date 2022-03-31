@@ -124,27 +124,6 @@ func TestEnqueueJobAfterShutdown(t *testing.T) {
 	q.Wait()
 }
 
-func TestWorkerNumAfterShutdown(t *testing.T) {
-	w := NewWorker(
-		WithAddr(host + ":4222"),
-	)
-	q, err := queue.NewQueue(
-		queue.WithWorker(w),
-		queue.WithWorkerCount(2),
-	)
-	assert.NoError(t, err)
-	q.Start()
-	q.Start()
-	time.Sleep(100 * time.Millisecond)
-	assert.Equal(t, 4, q.Workers())
-	q.Shutdown()
-	q.Wait()
-	assert.Equal(t, 0, q.Workers())
-	q.Start()
-	q.Start()
-	assert.Equal(t, 0, q.Workers())
-}
-
 func TestJobReachTimeout(t *testing.T) {
 	m := mockMessage{
 		Message: "foo",
@@ -297,7 +276,7 @@ func TestGoroutinePanic(t *testing.T) {
 func TestHandleTimeout(t *testing.T) {
 	job := queue.Job{
 		Timeout: 100 * time.Millisecond,
-		Body:    []byte("foo"),
+		Payload: []byte("foo"),
 	}
 	w := NewWorker(
 		WithAddr(host+":4222"),
@@ -314,7 +293,7 @@ func TestHandleTimeout(t *testing.T) {
 
 	job = queue.Job{
 		Timeout: 150 * time.Millisecond,
-		Body:    []byte("foo"),
+		Payload: []byte("foo"),
 	}
 
 	w = NewWorker(
@@ -340,7 +319,7 @@ func TestHandleTimeout(t *testing.T) {
 func TestJobComplete(t *testing.T) {
 	job := queue.Job{
 		Timeout: 100 * time.Millisecond,
-		Body:    []byte("foo"),
+		Payload: []byte("foo"),
 	}
 	w := NewWorker(
 		WithAddr(host+":4222"),
@@ -356,7 +335,7 @@ func TestJobComplete(t *testing.T) {
 
 	job = queue.Job{
 		Timeout: 250 * time.Millisecond,
-		Body:    []byte("foo"),
+		Payload: []byte("foo"),
 	}
 
 	w = NewWorker(
@@ -377,33 +356,4 @@ func TestJobComplete(t *testing.T) {
 	err = <-done
 	assert.Error(t, err)
 	assert.Equal(t, errors.New("job completed"), err)
-}
-
-func TestBusyWorkerCount(t *testing.T) {
-	job := queue.Job{
-		Timeout: 500 * time.Millisecond,
-		Body:    []byte("foo"),
-	}
-
-	w := NewWorker(
-		WithRunFunc(func(ctx context.Context, m queue.QueuedMessage) error {
-			time.Sleep(200 * time.Millisecond)
-			return nil
-		}),
-	)
-
-	assert.Equal(t, uint64(0), w.BusyWorkers())
-	go func() {
-		assert.NoError(t, w.handle(job))
-	}()
-	go func() {
-		assert.NoError(t, w.handle(job))
-	}()
-
-	time.Sleep(50 * time.Millisecond)
-	assert.Equal(t, uint64(2), w.BusyWorkers())
-	time.Sleep(200 * time.Millisecond)
-	assert.Equal(t, uint64(0), w.BusyWorkers())
-
-	assert.NoError(t, w.Shutdown())
 }
