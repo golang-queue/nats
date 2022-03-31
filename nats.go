@@ -39,16 +39,6 @@ func NewWorker(opts ...Option) *Worker {
 	return w
 }
 
-// BeforeRun run script before start worker
-func (w *Worker) BeforeRun() error {
-	return nil
-}
-
-// AfterRun run script after start worker
-func (w *Worker) AfterRun() error {
-	return nil
-}
-
 func (w *Worker) handle(job queue.Job) error {
 	// create channel with buffer size 1 to avoid goroutine leak
 	done := make(chan error, 1)
