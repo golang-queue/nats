@@ -12,7 +12,6 @@ type Option func(*options)
 type options struct {
 	runFunc func(context.Context, queue.QueuedMessage) error
 	logger  queue.Logger
-	metric  queue.Metric
 	addr    string
 	subj    string
 	queue   string
@@ -53,13 +52,6 @@ func WithLogger(l queue.Logger) Option {
 	}
 }
 
-// WithMetric set custom Metric
-func WithMetric(m queue.Metric) Option {
-	return func(w *options) {
-		w.metric = m
-	}
-}
-
 func newOptions(opts ...Option) options {
 	defaultOpts := options{
 		addr:  "127.0.0.1:4222",
@@ -68,7 +60,6 @@ func newOptions(opts ...Option) options {
 		runFunc: func(context.Context, queue.QueuedMessage) error {
 			return nil
 		},
-		metric: queue.NewMetric(),
 	}
 
 	// Loop through each option
