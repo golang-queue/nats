@@ -136,16 +136,6 @@ func (w *Worker) Shutdown() error {
 	return nil
 }
 
-// Capacity for channel
-func (w *Worker) Capacity() int {
-	return 0
-}
-
-// Usage for count of channel usage
-func (w *Worker) Usage() int {
-	return 0
-}
-
 // Queue send notification to queue
 func (w *Worker) Queue(job queue.QueuedMessage) error {
 	if atomic.LoadInt32(&w.stopFlag) == 1 {
