@@ -40,16 +40,14 @@ func TestNATSDefaultFlow(t *testing.T) {
 	)
 	q, err := queue.NewQueue(
 		queue.WithWorker(w),
-		queue.WithWorkerCount(2),
+		queue.WithWorkerCount(1),
 	)
 	assert.NoError(t, err)
+	assert.NoError(t, q.Queue(m))
+	assert.NoError(t, q.Queue(m))
 	q.Start()
-	time.Sleep(100 * time.Millisecond)
-	assert.NoError(t, q.Queue(m))
-	m.Message = "new message"
-	assert.NoError(t, q.Queue(m))
-	q.Shutdown()
-	q.Wait()
+	time.Sleep(500 * time.Millisecond)
+	q.Release()
 }
 
 func TestNATSShutdown(t *testing.T) {

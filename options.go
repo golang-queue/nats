@@ -54,9 +54,10 @@ func WithLogger(l queue.Logger) Option {
 
 func newOptions(opts ...Option) options {
 	defaultOpts := options{
-		addr:  "127.0.0.1:4222",
-		subj:  "foobar",
-		queue: "foobar",
+		addr:   "127.0.0.1:4222",
+		subj:   "foobar",
+		queue:  "foobar",
+		logger: queue.NewLogger(),
 		runFunc: func(context.Context, queue.QueuedMessage) error {
 			return nil
 		},

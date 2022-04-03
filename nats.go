@@ -21,14 +21,16 @@ type Worker struct {
 	stopFlag int32
 	stopOnce sync.Once
 	opts     options
+	tasks    chan *nats.Msg
 }
 
 // NewWorker for struc
 func NewWorker(opts ...Option) *Worker {
 	var err error
 	w := &Worker{
-		opts: newOptions(opts...),
-		stop: make(chan struct{}),
+		opts:  newOptions(opts...),
+		stop:  make(chan struct{}),
+		tasks: make(chan *nats.Msg, 1),
 	}
 
 	w.client, err = nats.Connect(w.opts.addr)
@@ -36,7 +38,26 @@ func NewWorker(opts ...Option) *Worker {
 		panic(err)
 	}
 
+	if err := w.startConsumer(); err != nil {
+		panic(err)
+	}
+
 	return w
+}
+
+func (w *Worker) startConsumer() error {
+	_, err := w.client.QueueSubscribe(w.opts.subj, w.opts.queue, func(msg *nats.Msg) {
+		select {
+		case w.tasks <- msg:
+		case <-w.stop:
+			if msg != nil {
+				// re-queue the job if worker has been shutdown.
+				w.opts.logger.Info("re-queue the old job")
+			}
+		}
+	})
+
+	return err
 }
 
 func (w *Worker) handle(job queue.Job) error {
@@ -88,37 +109,11 @@ func (w *Worker) handle(job queue.Job) error {
 
 // Run start the worker
 func (w *Worker) Run(task queue.QueuedMessage) error {
-	wg := &sync.WaitGroup{}
-	panicChan := make(chan interface{}, 1)
-	_, err := w.client.QueueSubscribe(w.opts.subj, w.opts.queue, func(m *nats.Msg) {
-		wg.Add(1)
-		defer func() {
-			wg.Done()
-			if p := recover(); p != nil {
-				panicChan <- p
-			}
-		}()
+	data, _ := task.(queue.Job)
 
-		var data queue.Job
-		_ = json.Unmarshal(m.Data, &data)
-
-		if err := w.handle(data); err != nil {
-			w.opts.logger.Error(err)
-		}
-	})
-	if err != nil {
+	if err := w.handle(data); err != nil {
 		return err
 	}
-
-	// wait close signal
-	select {
-	case <-w.stop:
-	case err := <-panicChan:
-		w.opts.logger.Error(err)
-	}
-
-	// wait job completed
-	wg.Wait()
 
 	return nil
 }
@@ -130,8 +125,9 @@ func (w *Worker) Shutdown() error {
 	}
 
 	w.stopOnce.Do(func() {
-		w.client.Close()
 		close(w.stop)
+		w.client.Close()
+		close(w.tasks)
 	})
 	return nil
 }
@@ -152,5 +148,24 @@ func (w *Worker) Queue(job queue.QueuedMessage) error {
 
 // Request a new task
 func (w *Worker) Request() (queue.QueuedMessage, error) {
-	return nil, nil
+	clock := 0
+loop:
+	for {
+		select {
+		case task, ok := <-w.tasks:
+			if !ok {
+				return nil, queue.ErrQueueHasBeenClosed
+			}
+			var data queue.Job
+			_ = json.Unmarshal(task.Data, &data)
+			return data, nil
+		case <-time.After(1 * time.Second):
+			if clock == 5 {
+				break loop
+			}
+			clock += 1
+		}
+	}
+
+	return nil, queue.ErrNoTaskInQueue
 }
