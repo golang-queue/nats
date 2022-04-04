@@ -16,12 +16,14 @@ var _ queue.Worker = (*Worker)(nil)
 
 // Worker for NSQ
 type Worker struct {
-	client   *nats.Conn
-	stop     chan struct{}
-	stopFlag int32
-	stopOnce sync.Once
-	opts     options
-	tasks    chan *nats.Msg
+	client       *nats.Conn
+	stop         chan struct{}
+	exit         chan struct{}
+	stopFlag     int32
+	stopOnce     sync.Once
+	opts         options
+	subscription *nats.Subscription
+	tasks        chan *nats.Msg
 }
 
 // NewWorker for struc
@@ -30,6 +32,7 @@ func NewWorker(opts ...Option) *Worker {
 	w := &Worker{
 		opts:  newOptions(opts...),
 		stop:  make(chan struct{}),
+		exit:  make(chan struct{}),
 		tasks: make(chan *nats.Msg, 1),
 	}
 
@@ -46,13 +49,18 @@ func NewWorker(opts ...Option) *Worker {
 }
 
 func (w *Worker) startConsumer() error {
-	_, err := w.client.QueueSubscribe(w.opts.subj, w.opts.queue, func(msg *nats.Msg) {
+	var err error
+	w.subscription, err = w.client.QueueSubscribe(w.opts.subj, w.opts.queue, func(msg *nats.Msg) {
 		select {
 		case w.tasks <- msg:
 		case <-w.stop:
 			if msg != nil {
 				// re-queue the job if worker has been shutdown.
 				w.opts.logger.Info("re-queue the old job")
+				if err := w.client.Publish(w.opts.subj, msg.Data); err != nil {
+					panic(err)
+				}
+				close(w.exit)
 			}
 		}
 	})
@@ -125,7 +133,12 @@ func (w *Worker) Shutdown() error {
 	}
 
 	w.stopOnce.Do(func() {
+		_ = w.subscription.Unsubscribe()
 		close(w.stop)
+		select {
+		case <-w.exit:
+		case <-time.After(50 * time.Millisecond):
+		}
 		w.client.Close()
 		close(w.tasks)
 	})

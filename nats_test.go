@@ -355,3 +355,25 @@ func TestJobComplete(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, errors.New("job completed"), err)
 }
+
+func TestReQueueTaskInWorkerBeforeShutdown(t *testing.T) {
+	job := queue.Job{
+		Payload: []byte("foo"),
+	}
+	w := NewWorker(
+		WithAddr(host+":4222"),
+		WithSubj("test02"),
+		WithQueue("test02"),
+		WithRunFunc(func(ctx context.Context, m queue.QueuedMessage) error {
+			log.Println(string(m.Bytes()))
+			return nil
+		}),
+	)
+
+	assert.NoError(t, w.Queue(job))
+	assert.NoError(t, w.Queue(job))
+	assert.NoError(t, w.Queue(job))
+	time.Sleep(500 * time.Millisecond)
+	// see "re-queue the old job" message
+	assert.NoError(t, w.Shutdown())
+}
