@@ -49,6 +49,9 @@ func NewWorker(opts ...Option) *Worker {
 }
 
 func (w *Worker) startConsumer() error {
+	if w.opts.disableConsumer {
+		return nil
+	}
 	var err error
 	w.subscription, err = w.client.QueueSubscribe(w.opts.subj, w.opts.queue, func(msg *nats.Msg) {
 		select {

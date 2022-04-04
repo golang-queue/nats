@@ -10,11 +10,12 @@ import (
 type Option func(*options)
 
 type options struct {
-	runFunc func(context.Context, queue.QueuedMessage) error
-	logger  queue.Logger
-	addr    string
-	subj    string
-	queue   string
+	runFunc         func(context.Context, queue.QueuedMessage) error
+	logger          queue.Logger
+	addr            string
+	subj            string
+	queue           string
+	disableConsumer bool
 }
 
 // WithAddr setup the addr of NATS
@@ -49,6 +50,13 @@ func WithRunFunc(fn func(context.Context, queue.QueuedMessage) error) Option {
 func WithLogger(l queue.Logger) Option {
 	return func(w *options) {
 		w.logger = l
+	}
+}
+
+// WithDisableConsumer disable consumer
+func WithDisableConsumer() Option {
+	return func(w *options) {
+		w.disableConsumer = true
 	}
 }
 
