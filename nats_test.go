@@ -368,10 +368,8 @@ func TestReQueueTaskInWorkerBeforeShutdown(t *testing.T) {
 	)
 
 	assert.NoError(t, w.Queue(job))
-	assert.NoError(t, w.Queue(job))
-	assert.NoError(t, w.Queue(job))
 	time.Sleep(500 * time.Millisecond)
-	// see "re-queue the old job" message
+	// see "re-queue the current task" message
 	assert.NoError(t, w.Shutdown())
 }
 
