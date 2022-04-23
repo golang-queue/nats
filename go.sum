@@ -2,6 +2,8 @@ github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/golang-queue/queue v0.0.13-0.20220403053548-d431277d570f h1:Wioq3g97ssizNPQsPwdL61DIjePabPaq+XYo7z2t2Oc=
 github.com/golang-queue/queue v0.0.13-0.20220403053548-d431277d570f/go.mod h1:KD9age1s6nk8Evz3tfKHsk8k4LwA0htxQ7MS7rJPJzA=
+github.com/golang-queue/queue v0.0.13-0.20220423025512-c4a8df54c917 h1:+khkGHxQPsad/mfmgizoTc3Jh5UVdCp1OfUkDfW+uDQ=
+github.com/golang-queue/queue v0.0.13-0.20220423025512-c4a8df54c917/go.mod h1:g1yxxDl8JMo4gUfxt11fjjU3SXU1ah61EvwshmDoSIs=
 github.com/golang/protobuf v1.5.0/go.mod h1:FsONVRAS9T7sI+LIUmWTfcYkHO4aIWwzhcaSAoJOfIk=
 github.com/golang/protobuf v1.5.2 h1:ROPKBNFfQgOUMifHyP+KYbvpjbdoFNs+aK7DXlji0Tw=
 github.com/golang/protobuf v1.5.2/go.mod h1:XVQd3VNwM+JqD3oG2Ue2ip4fOMUkwXdXDdiuN0vRsmY=

@@ -3,7 +3,7 @@ module github.com/golang-queue/nats
 go 1.18
 
 require (
-	github.com/golang-queue/queue v0.0.13-0.20220403053548-d431277d570f
+	github.com/golang-queue/queue v0.0.13-0.20220423025512-c4a8df54c917
 	github.com/nats-io/nats.go v1.13.1-0.20220308171302-2f2f6968e98d
 	github.com/stretchr/testify v1.7.1
 	go.uber.org/goleak v1.1.12

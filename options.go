@@ -4,13 +4,14 @@ import (
 	"context"
 
 	"github.com/golang-queue/queue"
+	"github.com/golang-queue/queue/core"
 )
 
 // Option for queue system
 type Option func(*options)
 
 type options struct {
-	runFunc         func(context.Context, queue.QueuedMessage) error
+	runFunc         func(context.Context, core.QueuedMessage) error
 	logger          queue.Logger
 	addr            string
 	subj            string
@@ -40,7 +41,7 @@ func WithQueue(queue string) Option {
 }
 
 // WithRunFunc setup the run func of queue
-func WithRunFunc(fn func(context.Context, queue.QueuedMessage) error) Option {
+func WithRunFunc(fn func(context.Context, core.QueuedMessage) error) Option {
 	return func(w *options) {
 		w.runFunc = fn
 	}
@@ -66,7 +67,7 @@ func newOptions(opts ...Option) options {
 		subj:   "foobar",
 		queue:  "foobar",
 		logger: queue.NewLogger(),
-		runFunc: func(context.Context, queue.QueuedMessage) error {
+		runFunc: func(context.Context, core.QueuedMessage) error {
 			return nil
 		},
 	}

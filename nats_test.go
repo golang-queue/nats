@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/golang-queue/queue"
+	"github.com/golang-queue/queue/core"
 
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/goleak"
@@ -77,7 +78,7 @@ func TestNATSCustomFuncAndWait(t *testing.T) {
 		WithAddr(host+":4222"),
 		WithSubj("test"),
 		WithQueue("test"),
-		WithRunFunc(func(ctx context.Context, m queue.QueuedMessage) error {
+		WithRunFunc(func(ctx context.Context, m core.QueuedMessage) error {
 			log.Println("show message: " + string(m.Bytes()))
 			time.Sleep(500 * time.Millisecond)
 			return nil
@@ -130,7 +131,7 @@ func TestJobReachTimeout(t *testing.T) {
 		WithAddr(host+":4222"),
 		WithSubj("JobReachTimeout"),
 		WithQueue("test"),
-		WithRunFunc(func(ctx context.Context, m queue.QueuedMessage) error {
+		WithRunFunc(func(ctx context.Context, m core.QueuedMessage) error {
 			for {
 				select {
 				case <-ctx.Done():
@@ -169,7 +170,7 @@ func TestCancelJobAfterShutdown(t *testing.T) {
 		WithSubj("CancelJob"),
 		WithQueue("test"),
 		WithLogger(queue.NewLogger()),
-		WithRunFunc(func(ctx context.Context, m queue.QueuedMessage) error {
+		WithRunFunc(func(ctx context.Context, m core.QueuedMessage) error {
 			for {
 				select {
 				case <-ctx.Done():
@@ -208,7 +209,7 @@ func TestGoroutineLeak(t *testing.T) {
 		WithSubj("GoroutineLeak"),
 		WithQueue("test"),
 		WithLogger(queue.NewEmptyLogger()),
-		WithRunFunc(func(ctx context.Context, m queue.QueuedMessage) error {
+		WithRunFunc(func(ctx context.Context, m core.QueuedMessage) error {
 			for {
 				select {
 				case <-ctx.Done():
@@ -252,7 +253,7 @@ func TestGoroutinePanic(t *testing.T) {
 	w := NewWorker(
 		WithAddr(host+":4222"),
 		WithSubj("GoroutinePanic"),
-		WithRunFunc(func(ctx context.Context, m queue.QueuedMessage) error {
+		WithRunFunc(func(ctx context.Context, m core.QueuedMessage) error {
 			panic("missing something")
 		}),
 	)
@@ -278,7 +279,7 @@ func TestHandleTimeout(t *testing.T) {
 	}
 	w := NewWorker(
 		WithAddr(host+":4222"),
-		WithRunFunc(func(ctx context.Context, m queue.QueuedMessage) error {
+		WithRunFunc(func(ctx context.Context, m core.QueuedMessage) error {
 			time.Sleep(200 * time.Millisecond)
 			return nil
 		}),
@@ -296,7 +297,7 @@ func TestHandleTimeout(t *testing.T) {
 
 	w = NewWorker(
 		WithAddr(host+":4222"),
-		WithRunFunc(func(ctx context.Context, m queue.QueuedMessage) error {
+		WithRunFunc(func(ctx context.Context, m core.QueuedMessage) error {
 			time.Sleep(200 * time.Millisecond)
 			return nil
 		}),
@@ -321,7 +322,7 @@ func TestJobComplete(t *testing.T) {
 	}
 	w := NewWorker(
 		WithAddr(host+":4222"),
-		WithRunFunc(func(ctx context.Context, m queue.QueuedMessage) error {
+		WithRunFunc(func(ctx context.Context, m core.QueuedMessage) error {
 			return errors.New("job completed")
 		}),
 	)
@@ -338,7 +339,7 @@ func TestJobComplete(t *testing.T) {
 
 	w = NewWorker(
 		WithAddr(host+":4222"),
-		WithRunFunc(func(ctx context.Context, m queue.QueuedMessage) error {
+		WithRunFunc(func(ctx context.Context, m core.QueuedMessage) error {
 			time.Sleep(200 * time.Millisecond)
 			return errors.New("job completed")
 		}),
