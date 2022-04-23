@@ -34,7 +34,7 @@ func NewWorker(opts ...Option) *Worker {
 		opts:  newOptions(opts...),
 		stop:  make(chan struct{}),
 		exit:  make(chan struct{}),
-		tasks: make(chan *nats.Msg, 1),
+		tasks: make(chan *nats.Msg),
 	}
 
 	w.client, err = nats.Connect(w.opts.addr)
@@ -59,13 +59,13 @@ func (w *Worker) startConsumer() error {
 		case w.tasks <- msg:
 		case <-w.stop:
 			if msg != nil {
-				// re-queue the job if worker has been shutdown.
-				w.opts.logger.Info("re-queue the old job")
+				// re-queue the task if worker has been shutdown.
+				w.opts.logger.Info("re-queue the current task")
 				if err := w.client.Publish(w.opts.subj, msg.Data); err != nil {
-					panic(err)
+					w.opts.logger.Errorf("error to re-queue the current task: %s", err.Error())
 				}
-				close(w.exit)
 			}
+			close(w.exit)
 		}
 	})
 

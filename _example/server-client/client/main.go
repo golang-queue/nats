@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/appleboy/graceful"
 	"github.com/golang-queue/nats"
 	"github.com/golang-queue/queue"
+	"github.com/golang-queue/queue/core"
 )
 
 type job struct {
@@ -26,33 +28,51 @@ func main() {
 	taskN := 10000
 	rets := make(chan string, taskN)
 
+	m := graceful.NewManager()
+
 	// define the worker
 	w := nats.NewWorker(
 		nats.WithAddr("127.0.0.1:4222"),
 		nats.WithSubj("example"),
 		nats.WithQueue("foobar"),
-		nats.WithRunFunc(func(ctx context.Context, m queue.QueuedMessage) error {
+		nats.WithRunFunc(func(ctx context.Context, m core.QueuedMessage) error {
 			var v *job
 			if err := json.Unmarshal(m.Bytes(), &v); err != nil {
 				return err
 			}
 			rets <- v.Message
+			time.Sleep(2 * time.Second)
 			return nil
 		}),
 	)
-
 	// define the queue
 	q := queue.NewPool(
-		5,
+		1,
 		queue.WithWorker(w),
 	)
 
-	// wait until all tasks done
-	for i := 0; i < taskN; i++ {
-		fmt.Println("message:", <-rets)
-		time.Sleep(50 * time.Millisecond)
-	}
+	m.AddRunningJob(func(ctx context.Context) error {
+		for {
+			select {
+			case <-ctx.Done():
+				select {
+				case m := <-rets:
+					fmt.Println("message:", m)
+				default:
+				}
+				return nil
+			case m := <-rets:
+				fmt.Println("message:", m)
+				time.Sleep(50 * time.Millisecond)
+			}
+		}
+	})
 
-	// shutdown the service and notify all the worker
-	q.Release()
+	m.AddShutdownJob(func() error {
+		// shutdown the service and notify all the worker
+		q.Release()
+		return nil
+	})
+
+	<-m.Done()
 }

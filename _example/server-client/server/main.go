@@ -23,7 +23,7 @@ func (j *job) Bytes() []byte {
 }
 
 func main() {
-	taskN := 100
+	taskN := 10
 
 	// define the worker
 	w := nats.NewWorker(

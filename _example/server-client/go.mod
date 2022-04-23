@@ -3,8 +3,9 @@ module example
 go 1.18
 
 require (
+	github.com/appleboy/graceful v0.0.4
 	github.com/golang-queue/nats v0.0.3-0.20210907015837-3e2e4b448b3d
-	github.com/golang-queue/queue v0.0.13-0.20220403053548-d431277d570f
+	github.com/golang-queue/queue v0.0.13-0.20220423025512-c4a8df54c917
 )
 
 require (
