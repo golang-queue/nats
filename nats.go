@@ -22,6 +22,7 @@ type Worker struct {
 	exit         chan struct{}
 	stopFlag     int32
 	stopOnce     sync.Once
+	startOnce    sync.Once
 	opts         options
 	subscription *nats.Subscription
 	tasks        chan *nats.Msg
@@ -49,24 +50,22 @@ func NewWorker(opts ...Option) *Worker {
 	return w
 }
 
-func (w *Worker) startConsumer() error {
-	if w.opts.disableConsumer {
-		return nil
-	}
-	var err error
-	w.subscription, err = w.client.QueueSubscribe(w.opts.subj, w.opts.queue, func(msg *nats.Msg) {
-		select {
-		case w.tasks <- msg:
-		case <-w.stop:
-			if msg != nil {
-				// re-queue the task if worker has been shutdown.
-				w.opts.logger.Info("re-queue the current task")
-				if err := w.client.Publish(w.opts.subj, msg.Data); err != nil {
-					w.opts.logger.Errorf("error to re-queue the current task: %s", err.Error())
+func (w *Worker) startConsumer() (err error) {
+	w.startOnce.Do(func() {
+		w.subscription, err = w.client.QueueSubscribe(w.opts.subj, w.opts.queue, func(msg *nats.Msg) {
+			select {
+			case w.tasks <- msg:
+			case <-w.stop:
+				if msg != nil {
+					// re-queue the task if worker has been shutdown.
+					w.opts.logger.Info("re-queue the current task")
+					if err := w.client.Publish(w.opts.subj, msg.Data); err != nil {
+						w.opts.logger.Errorf("error to re-queue the current task: %s", err.Error())
+					}
 				}
+				close(w.exit)
 			}
-			close(w.exit)
-		}
+		})
 	})
 
 	return err
@@ -165,6 +164,7 @@ func (w *Worker) Queue(job core.QueuedMessage) error {
 
 // Request a new task
 func (w *Worker) Request() (core.QueuedMessage, error) {
+	_ = w.startConsumer()
 	clock := 0
 loop:
 	for {

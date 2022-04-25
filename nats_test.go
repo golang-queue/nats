@@ -372,23 +372,3 @@ func TestReQueueTaskInWorkerBeforeShutdown(t *testing.T) {
 	// see "re-queue the current task" message
 	assert.NoError(t, w.Shutdown())
 }
-
-func TestWithDisableConsumer(t *testing.T) {
-	job := queue.Job{
-		Payload: []byte("foo"),
-	}
-	w := NewWorker(
-		WithAddr(host+":4222"),
-		WithSubj("test02"),
-		WithQueue("test02"),
-		WithDisableConsumer(),
-	)
-
-	assert.NoError(t, w.Queue(job))
-	assert.NoError(t, w.Queue(job))
-	assert.NoError(t, w.Queue(job))
-	time.Sleep(100 * time.Millisecond)
-	assert.Equal(t, 0, len(w.tasks))
-	// see "re-queue the old job" message
-	assert.NoError(t, w.Shutdown())
-}
