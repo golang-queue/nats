@@ -136,7 +136,11 @@ func (w *Worker) Shutdown() error {
 	}
 
 	w.stopOnce.Do(func() {
-		_ = w.subscription.Unsubscribe()
+		// unsubscribe channel if start the consumer
+		if w.subscription != nil {
+			_ = w.subscription.Unsubscribe()
+		}
+
 		close(w.stop)
 		select {
 		case <-w.exit:
