@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/golang-queue/nats v0.0.2-0.20210822122542-200fdcf19ebf
-	github.com/golang-queue/queue v0.0.13-0.20220423025512-c4a8df54c917
+	github.com/golang-queue/queue v0.1.0
 )
 
 require (
