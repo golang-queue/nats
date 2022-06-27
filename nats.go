@@ -40,11 +40,11 @@ func NewWorker(opts ...Option) *Worker {
 
 	w.client, err = nats.Connect(w.opts.addr)
 	if err != nil {
-		panic(err)
+		w.opts.logger.Fatal("can't connect to nats:", err)
 	}
 
 	if err := w.startConsumer(); err != nil {
-		panic(err)
+		w.opts.logger.Fatal("can't start consumer:", err)
 	}
 
 	return w
