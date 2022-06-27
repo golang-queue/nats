@@ -30,7 +30,7 @@ func (m mockMessage) Bytes() []byte {
 	return []byte(m.Message)
 }
 
-func TestNATSDefaultFlow(t *testing.T) {
+func TestDefaultFlow(t *testing.T) {
 	m := &mockMessage{
 		Message: "foo",
 	}
@@ -51,7 +51,7 @@ func TestNATSDefaultFlow(t *testing.T) {
 	q.Release()
 }
 
-func TestNATSShutdown(t *testing.T) {
+func TestShutdown(t *testing.T) {
 	w := NewWorker(
 		WithAddr(host+":4222"),
 		WithSubj("test"),
@@ -70,7 +70,7 @@ func TestNATSShutdown(t *testing.T) {
 	q.Wait()
 }
 
-func TestNATSCustomFuncAndWait(t *testing.T) {
+func TestCustomFuncAndWait(t *testing.T) {
 	m := &mockMessage{
 		Message: "foo",
 	}
