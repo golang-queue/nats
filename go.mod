@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/golang-queue/queue v0.1.4-0.20221230133718-0314ef173f98
 	github.com/nats-io/nats.go v1.23.0
-	github.com/stretchr/testify v1.8.1
+	github.com/stretchr/testify v1.8.2
 	go.uber.org/goleak v1.2.0
 )
 
