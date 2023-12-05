@@ -12,12 +12,13 @@ import (
 	"github.com/golang-queue/queue"
 	"github.com/golang-queue/queue/core"
 	"github.com/golang-queue/queue/job"
+	"github.com/nats-io/nats.go"
 
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/goleak"
 )
 
-var host = "127.0.0.1"
+var host = nats.DefaultURL
 
 func TestMain(m *testing.M) {
 	goleak.VerifyTestMain(m)
@@ -36,7 +37,28 @@ func TestDefaultFlow(t *testing.T) {
 		Message: "foo",
 	}
 	w := NewWorker(
-		WithAddr(host+":4222"),
+		WithAddr(host),
+		WithSubj("test"),
+		WithQueue("test"),
+	)
+	q, err := queue.NewQueue(
+		queue.WithWorker(w),
+		queue.WithWorkerCount(1),
+	)
+	assert.NoError(t, err)
+	assert.NoError(t, q.Queue(m))
+	assert.NoError(t, q.Queue(m))
+	q.Start()
+	time.Sleep(500 * time.Millisecond)
+	q.Release()
+}
+
+func TestClusteredHost(t *testing.T) {
+	m := &mockMessage{
+		Message: "foo",
+	}
+	w := NewWorker(
+		WithAddr(host, "nats://localhost:4223"),
 		WithSubj("test"),
 		WithQueue("test"),
 	)
@@ -54,7 +76,7 @@ func TestDefaultFlow(t *testing.T) {
 
 func TestShutdown(t *testing.T) {
 	w := NewWorker(
-		WithAddr(host+":4222"),
+		WithAddr(host),
 		WithSubj("test"),
 		WithQueue("test"),
 	)
@@ -76,7 +98,7 @@ func TestCustomFuncAndWait(t *testing.T) {
 		Message: "foo",
 	}
 	w := NewWorker(
-		WithAddr(host+":4222"),
+		WithAddr(host),
 		WithSubj("test"),
 		WithQueue("test"),
 		WithRunFunc(func(ctx context.Context, m core.QueuedMessage) error {
@@ -107,7 +129,7 @@ func TestEnqueueJobAfterShutdown(t *testing.T) {
 		Message: "foo",
 	}
 	w := NewWorker(
-		WithAddr(host + ":4222"),
+		WithAddr(host),
 	)
 	q, err := queue.NewQueue(
 		queue.WithWorker(w),
@@ -129,7 +151,7 @@ func TestJobReachTimeout(t *testing.T) {
 		Message: "foo",
 	}
 	w := NewWorker(
-		WithAddr(host+":4222"),
+		WithAddr(host),
 		WithSubj("JobReachTimeout"),
 		WithQueue("test"),
 		WithRunFunc(func(ctx context.Context, m core.QueuedMessage) error {
@@ -167,7 +189,7 @@ func TestCancelJobAfterShutdown(t *testing.T) {
 		Message: "test",
 	}
 	w := NewWorker(
-		WithAddr(host+":4222"),
+		WithAddr(host),
 		WithSubj("CancelJob"),
 		WithQueue("test"),
 		WithLogger(queue.NewLogger()),
@@ -206,7 +228,7 @@ func TestGoroutineLeak(t *testing.T) {
 		Message: "foo",
 	}
 	w := NewWorker(
-		WithAddr(host+":4222"),
+		WithAddr(host),
 		WithSubj("GoroutineLeak"),
 		WithQueue("test"),
 		WithLogger(queue.NewEmptyLogger()),
@@ -252,7 +274,7 @@ func TestGoroutinePanic(t *testing.T) {
 		Message: "foo",
 	}
 	w := NewWorker(
-		WithAddr(host+":4222"),
+		WithAddr(host),
 		WithSubj("GoroutinePanic"),
 		WithRunFunc(func(ctx context.Context, m core.QueuedMessage) error {
 			panic("missing something")
@@ -278,7 +300,7 @@ func TestReQueueTaskInWorkerBeforeShutdown(t *testing.T) {
 		Payload: []byte("foo"),
 	}
 	w := NewWorker(
-		WithAddr(host+":4222"),
+		WithAddr(host),
 		WithSubj("test02"),
 		WithQueue("test02"),
 	)

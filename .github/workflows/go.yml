@@ -33,10 +33,14 @@ jobs:
 
     # Service containers to run with `container-job`
     services:
-      nats:
+      nats01:
         image: nats
         ports:
           - 4222:4222
+      nats02:
+        image: nats
+        ports:
+          - 4223:4222
 
     steps:
       - name: Set up Go ${{ matrix.go }}

@@ -2,9 +2,12 @@ package nats
 
 import (
 	"context"
+	"strings"
 
 	"github.com/golang-queue/queue"
 	"github.com/golang-queue/queue/core"
+
+	"github.com/nats-io/nats.go"
 )
 
 // Option for queue system
@@ -19,9 +22,11 @@ type options struct {
 }
 
 // WithAddr setup the addr of NATS
-func WithAddr(addr string) Option {
+func WithAddr(addrs ...string) Option {
 	return func(w *options) {
-		w.addr = "nats://" + addr
+		if len(addrs) > 0 {
+			w.addr = strings.Join(addrs, ",")
+		}
 	}
 }
 
@@ -55,7 +60,7 @@ func WithLogger(l queue.Logger) Option {
 
 func newOptions(opts ...Option) options {
 	defaultOpts := options{
-		addr:   "127.0.0.1:4222",
+		addr:   nats.DefaultURL,
 		subj:   "foobar",
 		queue:  "foobar",
 		logger: queue.NewLogger(),
