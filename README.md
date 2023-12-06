@@ -9,6 +9,14 @@ NATS as backend with [Queue package](https://github.com/golang-queue/queue) (Con
 
 ## Testing
 
+setup the nats server
+
+```sh
+docker run -d --name nats-main -p 4222:4222 -p 8222:8222 nats:latest
+```
+
+run the test
+
 ```sh
 go test -v ./...
 ```
