@@ -60,7 +60,7 @@ func TestClusteredHost(t *testing.T) {
 	w := NewWorker(
 		WithAddr(host, "nats://localhost:4223"),
 		WithSubj("test"),
-		WithQueue("test"),
+		WithQueue("cluster"),
 	)
 	q, err := queue.NewQueue(
 		queue.WithWorker(w),

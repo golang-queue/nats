@@ -13,6 +13,7 @@ setup the nats server
 
 ```sh
 docker run -d --name nats-main -p 4222:4222 -p 8222:8222 nats:latest
+docker run -d --name nats-slave -p 4223:4222 -p 8223:8222 nats:latest
 ```
 
 run the test
