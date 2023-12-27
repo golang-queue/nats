@@ -178,7 +178,9 @@ func TestJobReachTimeout(t *testing.T) {
 	assert.NoError(t, err)
 	q.Start()
 	time.Sleep(50 * time.Millisecond)
-	assert.NoError(t, q.Queue(m, job.WithTimeout(20*time.Millisecond)))
+	assert.NoError(t, q.Queue(m, job.AllowOption{
+		Timeout: job.Time(20 * time.Millisecond),
+	}))
 	time.Sleep(100 * time.Millisecond)
 	q.Shutdown()
 	q.Wait()
@@ -217,7 +219,9 @@ func TestCancelJobAfterShutdown(t *testing.T) {
 	assert.NoError(t, err)
 	q.Start()
 	time.Sleep(50 * time.Millisecond)
-	assert.NoError(t, q.Queue(m, job.WithTimeout(150*time.Millisecond)))
+	assert.NoError(t, q.Queue(m, job.AllowOption{
+		Timeout: job.Time(150 * time.Millisecond),
+	}))
 	time.Sleep(100 * time.Millisecond)
 	q.Shutdown()
 	q.Wait()
