@@ -1,6 +1,6 @@
 module github.com/golang-queue/nats
 
-go 1.18
+go 1.20
 
 require (
 	github.com/golang-queue/queue v0.1.4-0.20221230133718-0314ef173f98
