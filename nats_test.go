@@ -39,9 +39,7 @@ func setupNatsContainer(ctx context.Context, t *testing.T) (testcontainers.Conta
 	req := testcontainers.ContainerRequest{
 		Image:        "nats:2.10",
 		ExposedPorts: []string{"4222/tcp"},
-		WaitingFor: wait.NewExecStrategy(
-			[]string{"wget", "http://localhost:8222/healthz", "-q", "-S", "-O", "-"},
-		),
+		WaitingFor:   wait.ForLog("Server is ready"),
 	}
 	redisC, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: req,
