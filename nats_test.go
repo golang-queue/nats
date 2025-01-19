@@ -12,9 +12,12 @@ import (
 	"github.com/golang-queue/queue"
 	"github.com/golang-queue/queue/core"
 	"github.com/golang-queue/queue/job"
-	"github.com/nats-io/nats.go"
 
+	"github.com/nats-io/nats.go"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/wait"
 	"go.uber.org/goleak"
 )
 
@@ -32,12 +35,36 @@ func (m mockMessage) Bytes() []byte {
 	return []byte(m.Message)
 }
 
+func setupNatsContainer(ctx context.Context, t *testing.T) (testcontainers.Container, string) {
+	req := testcontainers.ContainerRequest{
+		Image:        "nats:2.10",
+		ExposedPorts: []string{"4222/tcp"},
+		WaitingFor: wait.NewExecStrategy(
+			[]string{"wget", "http://localhost:8222/healthz", "-q", "-S", "-O", "-"},
+		),
+	}
+	redisC, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: req,
+		Started:          true,
+	})
+	require.NoError(t, err)
+
+	endpoint, err := redisC.Endpoint(ctx, "")
+	require.NoError(t, err)
+
+	return redisC, endpoint
+}
+
 func TestDefaultFlow(t *testing.T) {
+	ctx := context.Background()
+	natsC, endpoint := setupNatsContainer(ctx, t)
+	defer testcontainers.CleanupContainer(t, natsC)
+
 	m := &mockMessage{
 		Message: "foo",
 	}
 	w := NewWorker(
-		WithAddr(host),
+		WithAddr(endpoint),
 		WithSubj("test"),
 		WithQueue("test"),
 	)
