@@ -37,9 +37,13 @@ func (m mockMessage) Bytes() []byte {
 
 func setupNatsContainer(ctx context.Context, t *testing.T) (testcontainers.Container, string) {
 	req := testcontainers.ContainerRequest{
-		Image:        "nats:2.10",
-		ExposedPorts: []string{"4222/tcp"},
-		WaitingFor:   wait.ForLog("Server is ready"),
+		Image: "nats:2.10",
+		ExposedPorts: []string{
+			"4222/tcp", // client port
+			"6222/tcp", // cluster port
+			"8222/tcp", // monitoring port
+		},
+		WaitingFor: wait.ForLog("Server is ready"),
 	}
 	redisC, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: req,
@@ -119,11 +123,14 @@ func TestShutdown(t *testing.T) {
 }
 
 func TestCustomFuncAndWait(t *testing.T) {
+	ctx := context.Background()
+	natsC, endpoint := setupNatsContainer(ctx, t)
+	defer testcontainers.CleanupContainer(t, natsC)
 	m := &mockMessage{
 		Message: "foo",
 	}
 	w := NewWorker(
-		WithAddr(host),
+		WithAddr(endpoint),
 		WithSubj("test"),
 		WithQueue("test"),
 		WithRunFunc(func(ctx context.Context, m core.QueuedMessage) error {
@@ -150,11 +157,14 @@ func TestCustomFuncAndWait(t *testing.T) {
 }
 
 func TestEnqueueJobAfterShutdown(t *testing.T) {
+	ctx := context.Background()
+	natsC, endpoint := setupNatsContainer(ctx, t)
+	defer testcontainers.CleanupContainer(t, natsC)
 	m := mockMessage{
 		Message: "foo",
 	}
 	w := NewWorker(
-		WithAddr(host),
+		WithAddr(endpoint),
 	)
 	q, err := queue.NewQueue(
 		queue.WithWorker(w),
@@ -172,11 +182,14 @@ func TestEnqueueJobAfterShutdown(t *testing.T) {
 }
 
 func TestJobReachTimeout(t *testing.T) {
+	ctx := context.Background()
+	natsC, endpoint := setupNatsContainer(ctx, t)
+	defer testcontainers.CleanupContainer(t, natsC)
 	m := mockMessage{
 		Message: "foo",
 	}
 	w := NewWorker(
-		WithAddr(host),
+		WithAddr(endpoint),
 		WithSubj("JobReachTimeout"),
 		WithQueue("test"),
 		WithRunFunc(func(ctx context.Context, m core.QueuedMessage) error {
@@ -212,11 +225,14 @@ func TestJobReachTimeout(t *testing.T) {
 }
 
 func TestCancelJobAfterShutdown(t *testing.T) {
+	ctx := context.Background()
+	natsC, endpoint := setupNatsContainer(ctx, t)
+	defer testcontainers.CleanupContainer(t, natsC)
 	m := mockMessage{
 		Message: "test",
 	}
 	w := NewWorker(
-		WithAddr(host),
+		WithAddr(endpoint),
 		WithSubj("CancelJob"),
 		WithQueue("test"),
 		WithLogger(queue.NewLogger()),
@@ -253,11 +269,14 @@ func TestCancelJobAfterShutdown(t *testing.T) {
 }
 
 func TestGoroutineLeak(t *testing.T) {
+	ctx := context.Background()
+	natsC, endpoint := setupNatsContainer(ctx, t)
+	defer testcontainers.CleanupContainer(t, natsC)
 	m := mockMessage{
 		Message: "foo",
 	}
 	w := NewWorker(
-		WithAddr(host),
+		WithAddr(endpoint),
 		WithSubj("GoroutineLeak"),
 		WithQueue("test"),
 		WithLogger(queue.NewEmptyLogger()),
@@ -299,11 +318,14 @@ func TestGoroutineLeak(t *testing.T) {
 }
 
 func TestGoroutinePanic(t *testing.T) {
+	ctx := context.Background()
+	natsC, endpoint := setupNatsContainer(ctx, t)
+	defer testcontainers.CleanupContainer(t, natsC)
 	m := mockMessage{
 		Message: "foo",
 	}
 	w := NewWorker(
-		WithAddr(host),
+		WithAddr(endpoint),
 		WithSubj("GoroutinePanic"),
 		WithRunFunc(func(ctx context.Context, m core.QueuedMessage) error {
 			panic("missing something")
@@ -325,11 +347,14 @@ func TestGoroutinePanic(t *testing.T) {
 }
 
 func TestReQueueTaskInWorkerBeforeShutdown(t *testing.T) {
+	ctx := context.Background()
+	natsC, endpoint := setupNatsContainer(ctx, t)
+	defer testcontainers.CleanupContainer(t, natsC)
 	job := &job.Message{
 		Payload: []byte("foo"),
 	}
 	w := NewWorker(
-		WithAddr(host),
+		WithAddr(endpoint),
 		WithSubj("test02"),
 		WithQueue("test02"),
 	)
