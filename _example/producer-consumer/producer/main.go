@@ -30,7 +30,6 @@ func main() {
 		nats.WithAddr("127.0.0.1:4222"),
 		nats.WithSubj("example"),
 		nats.WithQueue("foobar"),
-		nats.WithDisableConsumer(),
 	)
 
 	// define the queue
