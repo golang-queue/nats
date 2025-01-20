@@ -36,6 +36,7 @@ import (
 
   "github.com/golang-queue/nats"
   "github.com/golang-queue/queue"
+  "github.com/golang-queue/queue/core"
 )
 
 type job struct {
@@ -59,9 +60,9 @@ func main() {
     nats.WithAddr("127.0.0.1:4222"),
     nats.WithSubj("example"),
     nats.WithQueue("foobar"),
-    nats.WithRunFunc(func(ctx context.Context, m queue.QueuedMessage) error {
+    nats.WithRunFunc(func(ctx context.Context, m core.TaskMessage) error {
       var v *job
-      if err := json.Unmarshal(m.Bytes(), &v); err != nil {
+      if err := json.Unmarshal(m.Payload(), &v); err != nil {
         return err
       }
       rets <- v.Message
