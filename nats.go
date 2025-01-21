@@ -67,6 +67,10 @@ func (w *Worker) startConsumer() (err error) {
 				close(w.exit)
 			}
 		})
+		if err != nil {
+			w.opts.logger.Errorf("error subscribing to queue: %s", err.Error())
+			close(w.exit)
+		}
 	})
 
 	return err
@@ -127,6 +131,9 @@ loop:
 			}
 			var data job.Message
 			_ = json.Unmarshal(task.Data, &data)
+			if err := task.Ack(); err != nil {
+				return nil, err
+			}
 			return &data, nil
 		case <-time.After(1 * time.Second):
 			if clock == 5 {
