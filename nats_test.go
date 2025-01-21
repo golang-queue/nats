@@ -45,16 +45,16 @@ func setupNatsContainer(ctx context.Context, t *testing.T) (testcontainers.Conta
 		},
 		WaitingFor: wait.ForLog("Server is ready"),
 	}
-	redisC, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+	natsC, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: req,
 		Started:          true,
 	})
 	require.NoError(t, err)
 
-	endpoint, err := redisC.Endpoint(ctx, "")
+	endpoint, err := natsC.Endpoint(ctx, "")
 	require.NoError(t, err)
 
-	return redisC, endpoint
+	return natsC, endpoint
 }
 
 func TestDefaultFlow(t *testing.T) {
