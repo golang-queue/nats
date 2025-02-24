@@ -1,10 +1,11 @@
 module github.com/golang-queue/nats
 
 go 1.22
+toolchain go1.22.5
 
 require (
 	github.com/golang-queue/queue v0.3.0
-	github.com/nats-io/nats.go v1.38.0
+	github.com/nats-io/nats.go v1.39.1
 	github.com/stretchr/testify v1.10.0
 	github.com/testcontainers/testcontainers-go v0.35.0
 	go.uber.org/goleak v1.3.0
