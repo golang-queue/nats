@@ -76,9 +76,9 @@ func TestDefaultFlow(t *testing.T) {
 		queue.WithWorker(w),
 		queue.WithWorkerCount(1),
 	)
-	assert.NoError(t, err)
-	assert.NoError(t, q.Queue(m))
-	assert.NoError(t, q.Queue(m))
+	require.NoError(t, err)
+	require.NoError(t, q.Queue(m))
+	require.NoError(t, q.Queue(m))
 	q.Start()
 	time.Sleep(500 * time.Millisecond)
 	q.Release()
@@ -97,9 +97,9 @@ func TestClusteredHost(t *testing.T) {
 		queue.WithWorker(w),
 		queue.WithWorkerCount(1),
 	)
-	assert.NoError(t, err)
-	assert.NoError(t, q.Queue(m))
-	assert.NoError(t, q.Queue(m))
+	require.NoError(t, err)
+	require.NoError(t, q.Queue(m))
+	require.NoError(t, q.Queue(m))
 	q.Start()
 	time.Sleep(500 * time.Millisecond)
 	q.Release()
@@ -115,7 +115,7 @@ func TestShutdown(t *testing.T) {
 		queue.WithWorker(w),
 		queue.WithWorkerCount(2),
 	)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	q.Start()
 	time.Sleep(1 * time.Second)
 	q.Shutdown()
@@ -145,13 +145,13 @@ func TestCustomFuncAndWait(t *testing.T) {
 		queue.WithWorker(w),
 		queue.WithWorkerCount(2),
 	)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	q.Start()
 	time.Sleep(100 * time.Millisecond)
-	assert.NoError(t, q.Queue(m))
-	assert.NoError(t, q.Queue(m))
-	assert.NoError(t, q.Queue(m))
-	assert.NoError(t, q.Queue(m))
+	require.NoError(t, q.Queue(m))
+	require.NoError(t, q.Queue(m))
+	require.NoError(t, q.Queue(m))
+	require.NoError(t, q.Queue(m))
 	time.Sleep(600 * time.Millisecond)
 	q.Shutdown()
 	q.Wait()
@@ -172,13 +172,13 @@ func TestEnqueueJobAfterShutdown(t *testing.T) {
 		queue.WithWorker(w),
 		queue.WithWorkerCount(2),
 	)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	q.Start()
 	time.Sleep(50 * time.Millisecond)
 	q.Shutdown()
 	// can't queue task after shutdown
 	err = q.Queue(m)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Equal(t, queue.ErrQueueShutdown, err)
 	q.Wait()
 }
@@ -215,10 +215,10 @@ func TestJobReachTimeout(t *testing.T) {
 		queue.WithWorker(w),
 		queue.WithWorkerCount(2),
 	)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	q.Start()
 	time.Sleep(50 * time.Millisecond)
-	assert.NoError(t, q.Queue(m, job.AllowOption{
+	require.NoError(t, q.Queue(m, job.AllowOption{
 		Timeout: job.Time(20 * time.Millisecond),
 	}))
 	time.Sleep(100 * time.Millisecond)
@@ -259,10 +259,10 @@ func TestCancelJobAfterShutdown(t *testing.T) {
 		queue.WithWorker(w),
 		queue.WithWorkerCount(2),
 	)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	q.Start()
 	time.Sleep(50 * time.Millisecond)
-	assert.NoError(t, q.Queue(m, job.AllowOption{
+	require.NoError(t, q.Queue(m, job.AllowOption{
 		Timeout: job.Time(150 * time.Millisecond),
 	}))
 	time.Sleep(100 * time.Millisecond)
@@ -306,17 +306,17 @@ func TestGoroutineLeak(t *testing.T) {
 		queue.WithWorker(w),
 		queue.WithWorkerCount(10),
 	)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	q.Start()
 	time.Sleep(50 * time.Millisecond)
-	for i := 0; i < 500; i++ {
+	for i := range 500 {
 		m.Message = fmt.Sprintf("foobar: %d", i+1)
-		assert.NoError(t, q.Queue(m))
+		require.NoError(t, q.Queue(m))
 	}
 	time.Sleep(400 * time.Millisecond)
 	q.Shutdown()
 	q.Wait()
-	fmt.Println("number of goroutines:", runtime.NumGoroutine())
+	t.Log("number of goroutines:", runtime.NumGoroutine())
 }
 
 func TestGoroutinePanic(t *testing.T) {
@@ -337,14 +337,14 @@ func TestGoroutinePanic(t *testing.T) {
 		queue.WithWorker(w),
 		queue.WithWorkerCount(2),
 	)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	q.Start()
 	time.Sleep(50 * time.Millisecond)
-	assert.NoError(t, q.Queue(m))
-	assert.NoError(t, q.Queue(m))
+	require.NoError(t, q.Queue(m))
+	require.NoError(t, q.Queue(m))
 	time.Sleep(2 * time.Second)
 	q.Shutdown()
-	assert.Error(t, q.Queue(m))
+	require.Error(t, q.Queue(m))
 	q.Wait()
 }
 
@@ -361,8 +361,8 @@ func TestReQueueTaskInWorkerBeforeShutdown(t *testing.T) {
 		WithQueue("test02"),
 	)
 
-	assert.NoError(t, w.Queue(job))
+	require.NoError(t, w.Queue(job))
 	time.Sleep(500 * time.Millisecond)
 	// see "re-queue the current task" message
-	assert.NoError(t, w.Shutdown())
+	require.NoError(t, w.Shutdown())
 }
