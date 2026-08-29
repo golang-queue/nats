@@ -21,7 +21,7 @@ type Worker struct {
 	client       *nats.Conn
 	stop         chan struct{}
 	exit         chan struct{}
-	stopFlag     int32
+	stopFlag     atomic.Int32
 	stopOnce     sync.Once
 	startOnce    sync.Once
 	opts         options
@@ -53,20 +53,27 @@ func NewWorker(opts ...Option) *Worker {
 
 func (w *Worker) startConsumer() (err error) {
 	w.startOnce.Do(func() {
-		w.subscription, err = w.client.QueueSubscribe(w.opts.subj, w.opts.queue, func(msg *nats.Msg) {
-			select {
-			case w.tasks <- msg:
-			case <-w.stop:
-				if msg != nil {
-					// re-queue the task if worker has been shutdown.
-					w.opts.logger.Info("re-queue the current task")
-					if err := w.client.Publish(w.opts.subj, msg.Data); err != nil {
-						w.opts.logger.Errorf("error to re-queue the current task: %s", err.Error())
+		w.subscription, err = w.client.QueueSubscribe(
+			w.opts.subj,
+			w.opts.queue,
+			func(msg *nats.Msg) {
+				select {
+				case w.tasks <- msg:
+				case <-w.stop:
+					if msg != nil {
+						// re-queue the task if worker has been shutdown.
+						w.opts.logger.Info("re-queue the current task")
+						if err := w.client.Publish(w.opts.subj, msg.Data); err != nil {
+							w.opts.logger.Errorf(
+								"error to re-queue the current task: %s",
+								err.Error(),
+							)
+						}
 					}
+					close(w.exit)
 				}
-				close(w.exit)
-			}
-		})
+			},
+		)
 		if err != nil {
 			w.opts.logger.Errorf("error subscribing to queue: %s", err.Error())
 			close(w.exit)
@@ -83,7 +90,7 @@ func (w *Worker) Run(ctx context.Context, task core.TaskMessage) error {
 
 // Shutdown worker
 func (w *Worker) Shutdown() error {
-	if !atomic.CompareAndSwapInt32(&w.stopFlag, 0, 1) {
+	if !w.stopFlag.CompareAndSwap(0, 1) {
 		return queue.ErrQueueShutdown
 	}
 
@@ -106,7 +113,7 @@ func (w *Worker) Shutdown() error {
 
 // Queue send notification to queue
 func (w *Worker) Queue(job core.TaskMessage) error {
-	if atomic.LoadInt32(&w.stopFlag) == 1 {
+	if w.stopFlag.Load() == 1 {
 		return queue.ErrQueueShutdown
 	}
 
@@ -139,7 +146,7 @@ loop:
 			if clock == 5 {
 				break loop
 			}
-			clock += 1
+			clock++
 		}
 	}
 
