@@ -21,6 +21,8 @@ import (
 	"go.uber.org/goleak"
 )
 
+const testMessage = "foo"
+
 var host = nats.DefaultURL
 
 func TestMain(m *testing.M) {
@@ -63,7 +65,7 @@ func TestDefaultFlow(t *testing.T) {
 	defer testcontainers.CleanupContainer(t, natsC)
 
 	m := &mockMessage{
-		Message: "foo",
+		Message: testMessage,
 	}
 	w := NewWorker(
 		WithAddr(endpoint),
@@ -84,7 +86,7 @@ func TestDefaultFlow(t *testing.T) {
 
 func TestClusteredHost(t *testing.T) {
 	m := &mockMessage{
-		Message: "foo",
+		Message: testMessage,
 	}
 	w := NewWorker(
 		WithAddr(host, "nats://localhost:4223"),
@@ -127,7 +129,7 @@ func TestCustomFuncAndWait(t *testing.T) {
 	natsC, endpoint := setupNatsContainer(ctx, t)
 	defer testcontainers.CleanupContainer(t, natsC)
 	m := &mockMessage{
-		Message: "foo",
+		Message: testMessage,
 	}
 	w := NewWorker(
 		WithAddr(endpoint),
@@ -161,7 +163,7 @@ func TestEnqueueJobAfterShutdown(t *testing.T) {
 	natsC, endpoint := setupNatsContainer(ctx, t)
 	defer testcontainers.CleanupContainer(t, natsC)
 	m := mockMessage{
-		Message: "foo",
+		Message: testMessage,
 	}
 	w := NewWorker(
 		WithAddr(endpoint),
@@ -186,7 +188,7 @@ func TestJobReachTimeout(t *testing.T) {
 	natsC, endpoint := setupNatsContainer(ctx, t)
 	defer testcontainers.CleanupContainer(t, natsC)
 	m := mockMessage{
-		Message: "foo",
+		Message: testMessage,
 	}
 	w := NewWorker(
 		WithAddr(endpoint),
@@ -273,7 +275,7 @@ func TestGoroutineLeak(t *testing.T) {
 	natsC, endpoint := setupNatsContainer(ctx, t)
 	defer testcontainers.CleanupContainer(t, natsC)
 	m := mockMessage{
-		Message: "foo",
+		Message: testMessage,
 	}
 	w := NewWorker(
 		WithAddr(endpoint),
@@ -322,7 +324,7 @@ func TestGoroutinePanic(t *testing.T) {
 	natsC, endpoint := setupNatsContainer(ctx, t)
 	defer testcontainers.CleanupContainer(t, natsC)
 	m := mockMessage{
-		Message: "foo",
+		Message: testMessage,
 	}
 	w := NewWorker(
 		WithAddr(endpoint),
