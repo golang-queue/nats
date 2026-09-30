@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/appleboy/graceful"
 	"github.com/golang-queue/nats"
+
+	"github.com/appleboy/graceful"
 	"github.com/golang-queue/queue"
 	"github.com/golang-queue/queue/core"
 )
