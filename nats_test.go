@@ -59,7 +59,7 @@ func setupNatsContainer(ctx context.Context, t *testing.T) (testcontainers.Conta
 }
 
 func TestDefaultFlow(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	natsC, endpoint := setupNatsContainer(ctx, t)
 	defer testcontainers.CleanupContainer(t, natsC)
 
@@ -124,7 +124,7 @@ func TestShutdown(t *testing.T) {
 }
 
 func TestCustomFuncAndWait(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	natsC, endpoint := setupNatsContainer(ctx, t)
 	defer testcontainers.CleanupContainer(t, natsC)
 	m := &mockMessage{
@@ -158,7 +158,7 @@ func TestCustomFuncAndWait(t *testing.T) {
 }
 
 func TestEnqueueJobAfterShutdown(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	natsC, endpoint := setupNatsContainer(ctx, t)
 	defer testcontainers.CleanupContainer(t, natsC)
 	m := mockMessage{
@@ -183,7 +183,7 @@ func TestEnqueueJobAfterShutdown(t *testing.T) {
 }
 
 func TestJobReachTimeout(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	natsC, endpoint := setupNatsContainer(ctx, t)
 	defer testcontainers.CleanupContainer(t, natsC)
 	m := mockMessage{
@@ -226,7 +226,7 @@ func TestJobReachTimeout(t *testing.T) {
 }
 
 func TestCancelJobAfterShutdown(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	natsC, endpoint := setupNatsContainer(ctx, t)
 	defer testcontainers.CleanupContainer(t, natsC)
 	m := mockMessage{
@@ -270,7 +270,7 @@ func TestCancelJobAfterShutdown(t *testing.T) {
 }
 
 func TestGoroutineLeak(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	natsC, endpoint := setupNatsContainer(ctx, t)
 	defer testcontainers.CleanupContainer(t, natsC)
 	m := mockMessage{
@@ -319,7 +319,7 @@ func TestGoroutineLeak(t *testing.T) {
 }
 
 func TestGoroutinePanic(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	natsC, endpoint := setupNatsContainer(ctx, t)
 	defer testcontainers.CleanupContainer(t, natsC)
 	m := mockMessage{
@@ -348,7 +348,7 @@ func TestGoroutinePanic(t *testing.T) {
 }
 
 func TestReQueueTaskInWorkerBeforeShutdown(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	natsC, endpoint := setupNatsContainer(ctx, t)
 	defer testcontainers.CleanupContainer(t, natsC)
 	job := &job.Message{
